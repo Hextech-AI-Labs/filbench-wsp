@@ -1,0 +1,13 @@
+model_id: "Qwen/Qwen3-1.7B-Base"
+instruct_variant: "Qwen/Qwen3-1.7B"
+family: "qwen3"
+approx_param_count: 1720574976
+native_dtype: "bfloat16"
+context_length: 32768
+eval_max_model_length: 4096
+license_name: "Apache-2.0"
+license_url: "https://www.apache.org/licenses/LICENSE-2.0"
+gated_on_hf: false
+redistribution_notes: >
+  Permissively licensed under Apache-2.0. Modified weights and delta checkpoints
+  may be shared provided the Apache-2.0 license and NOTICE attribution are preserved.

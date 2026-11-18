@@ -1,0 +1,349 @@
+{
+  "config_general": {
+    "lighteval_sha": "7ad52795d7d218d4679f93a019b58dde4b749c5b",
+    "num_fewshot_seeds": 1,
+    "max_samples": 2,
+    "job_id": 0,
+    "start_time": 85288.4984742,
+    "end_time": 85308.0959366,
+    "total_evaluation_time_secondes": "19.597462400008226",
+    "model_name": "C:/Users/User/Documents/GitHub/filbench-wsp/checkpoints/base/sailor2_1b",
+    "model_sha": "",
+    "model_dtype": "bfloat16",
+    "model_size": "1.84 GB",
+    "generation_parameters": {
+      "early_stopping": null,
+      "repetition_penalty": null,
+      "frequency_penalty": null,
+      "length_penalty": null,
+      "presence_penalty": null,
+      "max_new_tokens": 64,
+      "min_new_tokens": null,
+      "seed": 1234,
+      "stop_tokens": null,
+      "temperature": 0.0,
+      "top_k": null,
+      "min_p": null,
+      "top_p": null,
+      "truncate_prompt": null,
+      "response_format": null
+    }
+  },
+  "results": {
+    "filbench|dengue_filipino_fil:absent|0": {
+      "acc_norm": 1.0
+    },
+    "filbench|dengue_filipino_fil:dengue|0": {
+      "acc_norm": 0.5
+    },
+    "filbench|dengue_filipino_fil:health|0": {
+      "acc_norm": 0.0
+    },
+    "filbench|dengue_filipino_fil:mosquito|0": {
+      "acc_norm": 1.0
+    },
+    "filbench|dengue_filipino_fil:sick|0": {
+      "acc_norm": 0.0
+    },
+    "filbench|dengue_filipino_fil:_average|0": {
+      "acc_norm": 0.5
+    },
+    "all": {
+      "acc_norm": 0.5
+    }
+  },
+  "versions": {
+    "filbench|dengue_filipino_fil:absent|0": 0,
+    "filbench|dengue_filipino_fil:dengue|0": 0,
+    "filbench|dengue_filipino_fil:health|0": 0,
+    "filbench|dengue_filipino_fil:mosquito|0": 0,
+    "filbench|dengue_filipino_fil:sick|0": 0
+  },
+  "config_tasks": {
+    "filbench|dengue_filipino_fil:absent": {
+      "name": "dengue_filipino_fil:absent",
+      "prompt_function": "filipino_dengue_pfn",
+      "hf_repo": "jcblaise/dengue_filipino",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "acc_norm",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test",
+        "validation"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "train"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "random",
+      "generation_size": -1,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 4015,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    },
+    "filbench|dengue_filipino_fil:dengue": {
+      "name": "dengue_filipino_fil:dengue",
+      "prompt_function": "filipino_dengue_pfn",
+      "hf_repo": "jcblaise/dengue_filipino",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "acc_norm",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test",
+        "validation"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "train"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "random",
+      "generation_size": -1,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 4015,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    },
+    "filbench|dengue_filipino_fil:health": {
+      "name": "dengue_filipino_fil:health",
+      "prompt_function": "filipino_dengue_pfn",
+      "hf_repo": "jcblaise/dengue_filipino",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "acc_norm",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test",
+        "validation"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "train"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "random",
+      "generation_size": -1,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 4015,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    },
+    "filbench|dengue_filipino_fil:mosquito": {
+      "name": "dengue_filipino_fil:mosquito",
+      "prompt_function": "filipino_dengue_pfn",
+      "hf_repo": "jcblaise/dengue_filipino",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "acc_norm",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test",
+        "validation"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "train"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "random",
+      "generation_size": -1,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 4015,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    },
+    "filbench|dengue_filipino_fil:sick": {
+      "name": "dengue_filipino_fil:sick",
+      "prompt_function": "filipino_dengue_pfn",
+      "hf_repo": "jcblaise/dengue_filipino",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "acc_norm",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test",
+        "validation"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "train"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "random",
+      "generation_size": -1,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 4015,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    }
+  },
+  "summary_tasks": {
+    "filbench|dengue_filipino_fil:absent|0": {
+      "hashes": {
+        "hash_examples": "aa5a277e8656945e",
+        "hash_full_prompts": "aa5a277e8656945e",
+        "hash_input_tokens": "8478ef9fb7c231d3",
+        "hash_cont_tokens": "ed55f903f4f56e03"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 0,
+      "non_padded": 4,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    },
+    "filbench|dengue_filipino_fil:dengue|0": {
+      "hashes": {
+        "hash_examples": "ce2438fb1ac0926c",
+        "hash_full_prompts": "ce2438fb1ac0926c",
+        "hash_input_tokens": "365e8c9c3824dda7",
+        "hash_cont_tokens": "ed55f903f4f56e03"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 2,
+      "non_padded": 2,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    },
+    "filbench|dengue_filipino_fil:health|0": {
+      "hashes": {
+        "hash_examples": "73da8c2aa2e334a0",
+        "hash_full_prompts": "73da8c2aa2e334a0",
+        "hash_input_tokens": "05b5585903d869b4",
+        "hash_cont_tokens": "ed55f903f4f56e03"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 0,
+      "non_padded": 4,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    },
+    "filbench|dengue_filipino_fil:mosquito|0": {
+      "hashes": {
+        "hash_examples": "8438f9d201c7c84b",
+        "hash_full_prompts": "8438f9d201c7c84b",
+        "hash_input_tokens": "33e3bbc2ea01864d",
+        "hash_cont_tokens": "ed55f903f4f56e03"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 4,
+      "non_padded": 0,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    },
+    "filbench|dengue_filipino_fil:sick|0": {
+      "hashes": {
+        "hash_examples": "c99f93e992c7d450",
+        "hash_full_prompts": "c99f93e992c7d450",
+        "hash_input_tokens": "b0f8ce14a6eacc0c",
+        "hash_cont_tokens": "ed55f903f4f56e03"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 4,
+      "non_padded": 0,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    }
+  },
+  "summary_general": {
+    "hashes": {
+      "hash_examples": "2d089279aadcc816",
+      "hash_full_prompts": "2d089279aadcc816",
+      "hash_input_tokens": "2cd555d143f0d0a7",
+      "hash_cont_tokens": "f535336d35ba1c28"
+    },
+    "truncated": 0,
+    "non_truncated": 10,
+    "padded": 10,
+    "non_padded": 10,
+    "num_truncated_few_shots": 0
+  }
+}

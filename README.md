@@ -37,24 +37,50 @@ We will:
 
 - Gemma 3 1B
 - Llama 3.2 1B
+- Qwen3 1.7B
+- Sailor2 1B
 
-Final model selection will depend on compatibility, licensing, and available compute.
+Final model selection will depend on compatibility, licensing, tokenizer fertility,
+and available compute. Candidate metadata is stored in `configs/models/`.
 
 ## Repository Structure
 
 ```text
 filbench-wsp/
-├── docs/           # Research documentation
-├── configs/        # Experiment configurations
-├── src/            # Research implementation
-├── experiments/    # Baselines, edits, and controls
-├── results/        # Evaluation results
-├── notebooks/      # Exploratory analysis
-├── tests/          # Tests
-├── scripts/        # Utility scripts
+├── docs/           # Research documentation and audits
+├── configs/        # Frozen experiment configurations
+├── src/filbench_wsp/
+├── experiments/    # Reproducible experiment records and outputs
+├── checkpoints/    # Local model weights (never committed)
+├── external/       # Isolated upstream evaluation suite
+├── tests/          # Automated safety and validity checks
+├── scripts/        # Step-by-step CLI entry points
 ├── README.md
 └── LICENSE
 ```
+
+## Setup
+
+Python 3.10+ is supported. Create an environment and install the project
+with its development dependencies:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -e ".[dev]"
+```
+
+The Phase 1 workflow is intentionally staged:
+
+```bash
+python scripts/01_inspect_candidates.py
+python scripts/02_prepare_splits.py --output configs/dev_split_manifest.json
+python scripts/03_run_eval.py --help
+python scripts/04_score_local.py --help
+```
+
+Model checkpoints, upstream evaluation code, and experiment outputs are local
+artifacts and are excluded from version control.
 
 ## Collaboration
 

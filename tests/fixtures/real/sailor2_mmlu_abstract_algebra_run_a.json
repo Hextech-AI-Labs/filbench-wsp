@@ -1,0 +1,116 @@
+{
+  "config_general": {
+    "lighteval_sha": "7ad52795d7d218d4679f93a019b58dde4b749c5b",
+    "num_fewshot_seeds": 1,
+    "max_samples": 2,
+    "job_id": 0,
+    "start_time": 31373.3642423,
+    "end_time": 31394.843647,
+    "total_evaluation_time_secondes": "21.479404700003215",
+    "model_name": "C:/Users/User/Documents/GitHub/filbench-wsp/checkpoints/base/sailor2_1b",
+    "model_sha": "",
+    "model_dtype": "bfloat16",
+    "model_size": "1.84 GB",
+    "generation_parameters": {
+      "early_stopping": null,
+      "repetition_penalty": null,
+      "frequency_penalty": null,
+      "length_penalty": null,
+      "presence_penalty": null,
+      "max_new_tokens": 64,
+      "min_new_tokens": null,
+      "seed": null,
+      "stop_tokens": null,
+      "temperature": 0.0,
+      "top_k": null,
+      "min_p": null,
+      "top_p": null,
+      "truncate_prompt": null,
+      "response_format": null
+    }
+  },
+  "results": {
+    "filbench|global_mmlu_all_tgl_mcf:abstract_algebra|0": {
+      "acc": 0.5,
+      "acc_stderr": 0.5
+    },
+    "all": {
+      "acc": 0.5,
+      "acc_stderr": 0.5
+    }
+  },
+  "versions": {
+    "filbench|global_mmlu_all_tgl_mcf:abstract_algebra|0": 0
+  },
+  "config_tasks": {
+    "filbench|global_mmlu_all_tgl_mcf:abstract_algebra": {
+      "name": "global_mmlu_all_tgl_mcf:abstract_algebra",
+      "prompt_function": "prompt_fn",
+      "hf_repo": "CohereForAI/Global-MMLU",
+      "hf_subset": "fil",
+      "metric": [
+        {
+          "metric_name": "acc",
+          "higher_is_better": true,
+          "category": "8",
+          "use_case": "1",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": "<lambda>",
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "trust_dataset": false,
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "dev",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 100,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    }
+  },
+  "summary_tasks": {
+    "filbench|global_mmlu_all_tgl_mcf:abstract_algebra|0": {
+      "hashes": {
+        "hash_examples": "396f22cdfedbddb4",
+        "hash_full_prompts": "396f22cdfedbddb4",
+        "hash_input_tokens": "6cf054e04f91d738",
+        "hash_cont_tokens": "5a9a4f10193a82bc"
+      },
+      "truncated": 0,
+      "non_truncated": 2,
+      "padded": 0,
+      "non_padded": 8,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    }
+  },
+  "summary_general": {
+    "hashes": {
+      "hash_examples": "2a90f5a741da37ff",
+      "hash_full_prompts": "2a90f5a741da37ff",
+      "hash_input_tokens": "c63bb501b533f049",
+      "hash_cont_tokens": "1a3f22862ff45b14"
+    },
+    "truncated": 0,
+    "non_truncated": 2,
+    "padded": 0,
+    "non_padded": 8,
+    "num_truncated_few_shots": 0
+  }
+}

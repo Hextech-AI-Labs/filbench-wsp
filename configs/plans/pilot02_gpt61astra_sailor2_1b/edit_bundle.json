@@ -1,0 +1,236 @@
+{
+  "status": "accepted",
+  "plan": {
+    "plan_id": "pilot02_gpt61astra_sailor2_1b",
+    "target_model": "sail/Sailor2-1B",
+    "hypothesis": "If the model underweights context, a 3.125% gain on attention outputs at layers 15, 23, and 31 may help it use cues such as negation to rank Filipino/Tagalog and Cebuano answer choices and preserve those cues in translation. Limiting the gain to three spaced layers should reduce the risk to fluency. This prediction is untested.",
+    "budget": {
+      "max_ops": 32,
+      "max_edited_tensors": 24,
+      "max_abs_delta_scale": 0.15,
+      "max_rel_frobenius": 0.1,
+      "max_rel_linf": 0.25,
+      "allow_embeddings_and_head": false,
+      "require_bf16_nonzero_change": true,
+      "protected_tensors": [
+        "model.embed_tokens.weight",
+        "lm_head.weight",
+        "model.embed_positions.weight",
+        "transformer.wte.weight",
+        "transformer.wpe.weight"
+      ]
+    },
+    "proposer_metadata": {
+      "proposer_model_id": "gpt-6.1-astra-max",
+      "interface_mode": "chat_ui_zero_history_packet",
+      "packet_id": "packet_v1_dev_zero_shot",
+      "prompt_sha256": "30dc0531f0cf5d04adacdf43cc0c096e0cc91c81797f11a6fa41e9977cf42f70",
+      "raw_response_path": "prompts\\responses\\pilot02_gpt61astra_sailor2_1b_raw.txt",
+      "raw_response_sha256": "bacc04504f7be5f3d3d3da85c6c1045b03568daf7e67f157bceddacc6c1a8f07",
+      "ingested_at_utc": "2026-11-16T17:59:42.901253+00:00",
+      "random_control_seed": 42,
+      "proposed_ops_count": 3,
+      "accepted_ops_count": 3
+    },
+    "ops": [
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.15.self_attn.o_proj.weight",
+        "delta_scale": 0.03125,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "The layer-15 output projection has an effective rank of 674.5. Scaling the whole matrix gives its attention update more weight in the residual stream while preserving the relative contributions of both GQA groups at a fixed input, up to rounding."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.23.self_attn.o_proj.weight",
+        "delta_scale": 0.03125,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Repeat the gain at the midpoint, eight blocks after the first edit. This increases the contribution of context recomputed at this depth, which may help distinguish answer choices that differ by a single qualifier."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.31.self_attn.o_proj.weight",
+        "delta_scale": 0.03125,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "A final gain here gives attended source details slightly more weight before the last 16 blocks process them. The generation prediction is fewer dropped details, such as a negation that changes a translation's meaning."
+      }
+    ]
+  },
+  "llm_edited_report": {
+    "plan_id": "pilot02_gpt61astra_sailor2_1b",
+    "mode": "llm_edited",
+    "seed": null,
+    "base_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\base\\sailor2_1b",
+    "output_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\edited\\pilot02_gpt61astra_sailor2_1b_llm_edited",
+    "base_checkpoint_sha256": "095c21b1a7c3bc6d8959090e580fbda7ef30d3bc2d3960f0eed66f9ffa8aa6c6",
+    "output_checkpoint_sha256": "0fca053b6492d9558c07f4fb6e57b1fe6e40644e64607365190656474e0bea4a",
+    "total_tensors_in_model": 579,
+    "num_edited_tensors": 3,
+    "total_changed_parameters_bf16": 2408448,
+    "global_fp32_delta_frobenius": 0.36596957365951843,
+    "global_bf16_delta_frobenius": 0.36423932649772706,
+    "global_max_rel_frobenius_fp32": 0.03124999999999567,
+    "global_max_rel_linf_fp32": 0.031249999999764706,
+    "tensor_metrics": [
+      {
+        "tensor_name": "model.layers.15.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 7.220466136932373,
+        "base_linf": 0.1328125,
+        "fp32_delta_frobenius": 0.22563956677913666,
+        "fp32_rel_frobenius": 0.03124999999999567,
+        "fp32_delta_linf": 0.004150390625,
+        "fp32_rel_linf": 0.031249999999764706,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.22456347942352295,
+        "bf16_rel_frobenius": 0.031100967051816687,
+        "bf16_delta_linf": 0.00390625,
+        "bf16_rel_linf": 0.029411764705660898
+      },
+      {
+        "tensor_name": "model.layers.23.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 6.5658769607543945,
+        "base_linf": 0.0849609375,
+        "fp32_delta_frobenius": 0.20518365502357483,
+        "fp32_rel_frobenius": 0.03124999999999524,
+        "fp32_delta_linf": 0.002655029296875,
+        "fp32_rel_linf": 0.031249999999632183,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.20421724021434784,
+        "bf16_rel_frobenius": 0.03110281253135955,
+        "bf16_delta_linf": 0.00244140625,
+        "bf16_rel_linf": 0.028735632183569823
+      },
+      {
+        "tensor_name": "model.layers.31.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 6.473196029663086,
+        "base_linf": 0.099609375,
+        "fp32_delta_frobenius": 0.20228737592697144,
+        "fp32_rel_frobenius": 0.03124999999999517,
+        "fp32_delta_linf": 0.00311279296875,
+        "fp32_rel_linf": 0.031249999999686272,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.20133765041828156,
+        "bf16_rel_frobenius": 0.03110328336970348,
+        "bf16_delta_linf": 0.0029296875,
+        "bf16_rel_linf": 0.029411764705587082
+      }
+    ]
+  },
+  "random_control_report": {
+    "plan_id": "pilot02_gpt61astra_sailor2_1b",
+    "mode": "random_control",
+    "seed": 42,
+    "base_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\base\\sailor2_1b",
+    "output_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\edited\\pilot02_gpt61astra_sailor2_1b_random_control",
+    "base_checkpoint_sha256": "095c21b1a7c3bc6d8959090e580fbda7ef30d3bc2d3960f0eed66f9ffa8aa6c6",
+    "output_checkpoint_sha256": "33ae734b77a05b216360c2d6c2680a9bb7d9c6b184ca8bae4da2d51b77901ff9",
+    "total_tensors_in_model": 579,
+    "num_edited_tensors": 3,
+    "total_changed_parameters_bf16": 2408448,
+    "global_fp32_delta_frobenius": 0.36596957365951843,
+    "global_bf16_delta_frobenius": 0.364733243081451,
+    "global_max_rel_frobenius_fp32": 0.03124999999999567,
+    "global_max_rel_linf_fp32": 0.031249999999764706,
+    "tensor_metrics": [
+      {
+        "tensor_name": "model.layers.15.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 7.220466136932373,
+        "base_linf": 0.1328125,
+        "fp32_delta_frobenius": 0.22563956677913666,
+        "fp32_rel_frobenius": 0.03124999999999567,
+        "fp32_delta_linf": 0.004150390625,
+        "fp32_rel_linf": 0.031249999999764706,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.2248624563217163,
+        "bf16_rel_frobenius": 0.0311423739211965,
+        "bf16_delta_linf": 0.00390625,
+        "bf16_rel_linf": 0.029411764705660898
+      },
+      {
+        "tensor_name": "model.layers.23.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 6.5658769607543945,
+        "base_linf": 0.0849609375,
+        "fp32_delta_frobenius": 0.20518365502357483,
+        "fp32_rel_frobenius": 0.03124999999999524,
+        "fp32_delta_linf": 0.002655029296875,
+        "fp32_rel_linf": 0.031249999999632183,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.20449449121952057,
+        "bf16_rel_frobenius": 0.03114503857470911,
+        "bf16_delta_linf": 0.00244140625,
+        "bf16_rel_linf": 0.028735632183569823
+      },
+      {
+        "tensor_name": "model.layers.31.self_attn.o_proj.weight",
+        "shape": [
+          896,
+          896
+        ],
+        "numel": 802816,
+        "num_ops_applied": 1,
+        "base_frobenius": 6.473196029663086,
+        "base_linf": 0.099609375,
+        "fp32_delta_frobenius": 0.20228737592697144,
+        "fp32_rel_frobenius": 0.03124999999999517,
+        "fp32_delta_linf": 0.00311279296875,
+        "fp32_rel_linf": 0.031249999999686272,
+        "bf16_l0_changed_elements": 802816,
+        "bf16_l0_fraction": 1.0,
+        "bf16_delta_frobenius": 0.20161651074886322,
+        "bf16_rel_frobenius": 0.03114636260433561,
+        "bf16_delta_linf": 0.0029296875,
+        "bf16_rel_linf": 0.029411764705587082
+      }
+    ]
+  }
+}

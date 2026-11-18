@@ -1,0 +1,560 @@
+{
+  "status": "accepted",
+  "plan": {
+    "plan_id": "pilot01_sonnet55extra_qwen3_1_7b",
+    "target_model": "Qwen/Qwen3-1.7B-Base",
+    "hypothesis": "Caveat: Section 1 (48 layers, hidden 896) and Section 2 (28 layers, hidden 2048, k/v [1024,2048], packet ID qwen3_1_7b) describe different shapes. To stay valid under either, every op is scale_tensor, which is shape-agnostic, on layers 12-26 only, and I avoid q_proj/k_proj, biases and norm weights because they may be absent or cancelled by q_norm/k_norm. Rationale: multilingual LMs tend to process in a language-agnostic, English-leaning latent space in mid layers and realize the target language in late layers. Slightly damping mid-depth MLP writes (down_proj, -3%) may reduce English-pivot interference. Slightly amplifying mid-late o_proj (+3%) may strengthen context retrieval for MCF reading comprehension and cultural questions. Slightly amplifying late MLP down_proj (+4-5%) may sharpen Filipino/Cebuano token realization and the low generation scores (tatoeba, ntrex, tico19). Whole-tensor scaling at |delta| >= 0.03 survives bf16 rounding, whereas narrow spectral bands would mostly round away. Magnitudes are small (<=5%, 9 tensors, well under the Frobenius/L_inf caps), and layers 0-1, 7 and 23, plus the final norm and embeddings, are skipped to avoid outlier-feature or massive-activation directions and keep fluency intact. Signs are an untested prior, not a measured result.",
+    "budget": {
+      "max_ops": 32,
+      "max_edited_tensors": 24,
+      "max_abs_delta_scale": 0.15,
+      "max_rel_frobenius": 0.1,
+      "max_rel_linf": 0.25,
+      "allow_embeddings_and_head": false,
+      "require_bf16_nonzero_change": true,
+      "protected_tensors": [
+        "model.embed_tokens.weight",
+        "lm_head.weight",
+        "model.embed_positions.weight",
+        "transformer.wte.weight",
+        "transformer.wpe.weight"
+      ]
+    },
+    "proposer_metadata": {
+      "proposer_model_id": "claude-sonnet-5.5-extra",
+      "interface_mode": "chat_ui_zero_history_packet",
+      "packet_id": "packet_v1_qwen3_1_7b_dev_zero_shot",
+      "prompt_sha256": "17a1d9357af46056de865e81e605973a0e062ab98035f9b128194113a2afbbbe",
+      "raw_response_path": "prompts\\responses\\pilot01_sonnet55extra_qwen3_1_7b_raw.txt",
+      "raw_response_sha256": "fc4959cb0cbef0fcb7a80f160a10073790ecc70f9a142e5c5f6f9062d5e4559a",
+      "ingested_at_utc": "2026-11-17T13:27:49.543928+00:00",
+      "random_control_seed": 42,
+      "proposed_ops_count": 9,
+      "accepted_ops_count": 9
+    },
+    "ops": [
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.12.mlp.down_proj.weight",
+        "delta_scale": -0.03,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Mid-depth MLP write is where the English-pivot latent is thought to be built; a 3% attenuation lowers its pull on Filipino/Cebuano inputs without removing the pathway."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.14.mlp.down_proj.weight",
+        "delta_scale": -0.03,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Second mid-depth MLP damping step, spread over two layers so each edit stays small and no single layer is disrupted."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.16.self_attn.o_proj.weight",
+        "delta_scale": 0.03,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Mildly amplifies attention output in the mid-layer retrieval stage to help passage and context use in Belebele, FIRE-CS and NLI-style MCF tasks."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.18.self_attn.o_proj.weight",
+        "delta_scale": 0.03,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Same context-retrieval boost one stage later, kept at 3% to avoid over-weighting attention against the MLP stream."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.20.mlp.down_proj.weight",
+        "delta_scale": 0.04,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Start of the late stage where target-language lexical and morphological features are realized; a modest boost should favor Filipino/Cebuano continuations."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.22.mlp.down_proj.weight",
+        "delta_scale": 0.04,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Continues the late MLP amplification; layer 22 is chosen because its neighbor layer 23 has an outlier-heavy down_proj (L_inf 1.18) that I deliberately leave untouched."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.24.mlp.down_proj.weight",
+        "delta_scale": 0.05,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Late-layer MLP is closest to output-token selection, so a 5% boost has the best chance of moving generation scores while still being a small global perturbation."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.25.mlp.down_proj.weight",
+        "delta_scale": 0.05,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Adjacent late layer given the same boost so the amplification is a coherent band rather than an isolated spike."
+      },
+      {
+        "op_type": "scale_tensor",
+        "tensor_name": "model.layers.26.mlp.down_proj.weight",
+        "delta_scale": 0.04,
+        "row_start": null,
+        "row_end": null,
+        "col_start": null,
+        "col_end": null,
+        "rank_start": null,
+        "rank_end": null,
+        "rationale": "Penultimate layer in the 28-layer reading, with a slightly smaller step because errors here propagate directly to the logits; layer 27 is left unedited as the riskiest for fluency."
+      }
+    ]
+  },
+  "llm_edited_report": {
+    "plan_id": "pilot01_sonnet55extra_qwen3_1_7b",
+    "mode": "llm_edited",
+    "seed": null,
+    "base_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp-checkpoints-archive-2026-11-17\\base\\qwen3_1_7b_base",
+    "output_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\edited\\pilot01_sonnet55extra_qwen3_1_7b_llm_edited",
+    "base_checkpoint_sha256": "76f3d865302fc96644ab0bdcc44c766bc7aed2939aab2e8ac8a90c1e8eccacff",
+    "output_checkpoint_sha256": "59a1e9db36f8b496d6017ab286cc3887fde6fa3197d9ae0c475f66322844b51e",
+    "total_tensors_in_model": 310,
+    "num_edited_tensors": 9,
+    "total_changed_parameters_bf16": 96468961,
+    "global_fp32_delta_frobenius": 14.6285886804806,
+    "global_bf16_delta_frobenius": 14.616571257542942,
+    "global_max_rel_frobenius_fp32": 0.049997160403698004,
+    "global_max_rel_linf_fp32": 0.05000000205824384,
+    "tensor_metrics": [
+      {
+        "tensor_name": "model.layers.12.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 120.07463836669922,
+        "base_linf": 0.81640625,
+        "fp32_delta_frobenius": 3.6008782386779785,
+        "fp32_rel_frobenius": 0.02998866611349791,
+        "fp32_delta_linf": 0.024492187425494194,
+        "fp32_rel_linf": 0.029999999908702554,
+        "bf16_l0_changed_elements": 12582908,
+        "bf16_l0_fraction": 0.9999996821085612,
+        "bf16_delta_frobenius": 3.5883355140686035,
+        "bf16_rel_frobenius": 0.029884208379708444,
+        "bf16_delta_linf": 0.0234375,
+        "bf16_rel_linf": 0.028708133971256704
+      },
+      {
+        "tensor_name": "model.layers.14.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 116.24504089355469,
+        "base_linf": 0.671875,
+        "fp32_delta_frobenius": 3.486114740371704,
+        "fp32_rel_frobenius": 0.02998936310378953,
+        "fp32_delta_linf": 0.020156249403953552,
+        "fp32_rel_linf": 0.02999999911281645,
+        "bf16_l0_changed_elements": 12582904,
+        "bf16_l0_fraction": 0.9999993642171224,
+        "bf16_delta_frobenius": 3.4739019870758057,
+        "bf16_rel_frobenius": 0.029884302679688675,
+        "bf16_delta_linf": 0.01953125,
+        "bf16_rel_linf": 0.0290697674418172
+      },
+      {
+        "tensor_name": "model.layers.16.self_attn.o_proj.weight",
+        "shape": [
+          2048,
+          2048
+        ],
+        "numel": 4194304,
+        "num_ops_applied": 1,
+        "base_frobenius": 61.7217903137207,
+        "base_linf": 0.5,
+        "fp32_delta_frobenius": 1.8512861728668213,
+        "fp32_rel_frobenius": 0.02999404527083609,
+        "fp32_delta_linf": 0.014999999664723873,
+        "fp32_rel_linf": 0.02999999932938775,
+        "bf16_l0_changed_elements": 4194303,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 1.8425496816635132,
+        "bf16_rel_frobenius": 0.029852498968324415,
+        "bf16_delta_linf": 0.015625,
+        "bf16_rel_linf": 0.0312499999999375
+      },
+      {
+        "tensor_name": "model.layers.18.self_attn.o_proj.weight",
+        "shape": [
+          2048,
+          2048
+        ],
+        "numel": 4194304,
+        "num_ops_applied": 1,
+        "base_frobenius": 58.81593322753906,
+        "base_linf": 0.484375,
+        "fp32_delta_frobenius": 1.7641435861587524,
+        "fp32_rel_frobenius": 0.02999431428442773,
+        "fp32_delta_linf": 0.014531250111758709,
+        "fp32_rel_linf": 0.03000000023066572,
+        "bf16_l0_changed_elements": 4194303,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 1.755727767944336,
+        "bf16_rel_frobenius": 0.029851226897174035,
+        "bf16_delta_linf": 0.013671875,
+        "bf16_rel_linf": 0.028225806451554633
+      },
+      {
+        "tensor_name": "model.layers.20.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 132.03268432617188,
+        "base_linf": 0.8046875,
+        "fp32_delta_frobenius": 5.2794189453125,
+        "fp32_rel_frobenius": 0.039985697270762524,
+        "fp32_delta_linf": 0.03218749910593033,
+        "fp32_rel_linf": 0.03999999888887342,
+        "bf16_l0_changed_elements": 12582907,
+        "bf16_l0_fraction": 0.9999996026357015,
+        "bf16_delta_frobenius": 5.27169132232666,
+        "bf16_rel_frobenius": 0.03992716916444341,
+        "bf16_delta_linf": 0.03125,
+        "bf16_rel_linf": 0.03883495145626242
+      },
+      {
+        "tensor_name": "model.layers.22.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 136.81539916992188,
+        "base_linf": 1.203125,
+        "fp32_delta_frobenius": 5.4710283279418945,
+        "fp32_rel_frobenius": 0.03998839575906914,
+        "fp32_delta_linf": 0.048124998807907104,
+        "fp32_rel_linf": 0.03999999900913629,
+        "bf16_l0_changed_elements": 12582909,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 5.463088512420654,
+        "bf16_rel_frobenius": 0.03993036270453425,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.038961038961006576
+      },
+      {
+        "tensor_name": "model.layers.24.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 138.6571044921875,
+        "base_linf": 1.0859375,
+        "fp32_delta_frobenius": 6.932455539703369,
+        "fp32_rel_frobenius": 0.0499971174581532,
+        "fp32_delta_linf": 0.05429687723517418,
+        "fp32_rel_linf": 0.05000000205824384,
+        "bf16_l0_changed_elements": 12582911,
+        "bf16_l0_fraction": 0.9999999205271403,
+        "bf16_delta_frobenius": 6.937748432159424,
+        "bf16_rel_frobenius": 0.05003528998797371,
+        "bf16_delta_linf": 0.0546875,
+        "bf16_rel_linf": 0.05035971223016945
+      },
+      {
+        "tensor_name": "model.layers.25.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 137.5299835205078,
+        "base_linf": 0.93359375,
+        "fp32_delta_frobenius": 6.876108646392822,
+        "fp32_rel_frobenius": 0.049997160403698004,
+        "fp32_delta_linf": 0.04667968675494194,
+        "fp32_rel_linf": 0.049999999201892624,
+        "bf16_l0_changed_elements": 12582907,
+        "bf16_l0_fraction": 0.9999996026357015,
+        "bf16_delta_frobenius": 6.88109827041626,
+        "bf16_rel_frobenius": 0.05003344066706831,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.050209205020866725
+      },
+      {
+        "tensor_name": "model.layers.26.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 135.11924743652344,
+        "base_linf": 1.2109375,
+        "fp32_delta_frobenius": 5.403017520904541,
+        "fp32_rel_frobenius": 0.03998703088871732,
+        "fp32_delta_linf": 0.04843749850988388,
+        "fp32_rel_linf": 0.03999999876941946,
+        "bf16_l0_changed_elements": 12582909,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 5.394859313964844,
+        "bf16_rel_frobenius": 0.0399266530588043,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.038709677419322866
+      }
+    ]
+  },
+  "random_control_report": {
+    "plan_id": "pilot01_sonnet55extra_qwen3_1_7b",
+    "mode": "random_control",
+    "seed": 42,
+    "base_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp-checkpoints-archive-2026-11-17\\base\\qwen3_1_7b_base",
+    "output_checkpoint_dir": "C:\\Users\\User\\Documents\\GitHub\\filbench-wsp\\checkpoints\\edited\\pilot01_sonnet55extra_qwen3_1_7b_random_control",
+    "base_checkpoint_sha256": "76f3d865302fc96644ab0bdcc44c766bc7aed2939aab2e8ac8a90c1e8eccacff",
+    "output_checkpoint_sha256": "5de2b0837745438e60a3897965fc6c8399303b44c5f21e71f01a5a30bc0e4fdb",
+    "total_tensors_in_model": 310,
+    "num_edited_tensors": 9,
+    "total_changed_parameters_bf16": 96468961,
+    "global_fp32_delta_frobenius": 14.6285886804806,
+    "global_bf16_delta_frobenius": 14.615541075839174,
+    "global_max_rel_frobenius_fp32": 0.049997160403698004,
+    "global_max_rel_linf_fp32": 0.05000000205824384,
+    "tensor_metrics": [
+      {
+        "tensor_name": "model.layers.12.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 120.07463836669922,
+        "base_linf": 0.81640625,
+        "fp32_delta_frobenius": 3.6008782386779785,
+        "fp32_rel_frobenius": 0.02998866611349791,
+        "fp32_delta_linf": 0.024492187425494194,
+        "fp32_rel_linf": 0.029999999908702554,
+        "bf16_l0_changed_elements": 12582908,
+        "bf16_l0_fraction": 0.9999996821085612,
+        "bf16_delta_frobenius": 3.584681987762451,
+        "bf16_rel_frobenius": 0.029853781252416212,
+        "bf16_delta_linf": 0.0234375,
+        "bf16_rel_linf": 0.028708133971256704
+      },
+      {
+        "tensor_name": "model.layers.14.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 116.24504089355469,
+        "base_linf": 0.671875,
+        "fp32_delta_frobenius": 3.486114740371704,
+        "fp32_rel_frobenius": 0.02998936310378953,
+        "fp32_delta_linf": 0.020156249403953552,
+        "fp32_rel_linf": 0.02999999911281645,
+        "bf16_l0_changed_elements": 12582904,
+        "bf16_l0_fraction": 0.9999993642171224,
+        "bf16_delta_frobenius": 3.470351219177246,
+        "bf16_rel_frobenius": 0.029853757136659352,
+        "bf16_delta_linf": 0.01953125,
+        "bf16_rel_linf": 0.0290697674418172
+      },
+      {
+        "tensor_name": "model.layers.16.self_attn.o_proj.weight",
+        "shape": [
+          2048,
+          2048
+        ],
+        "numel": 4194304,
+        "num_ops_applied": 1,
+        "base_frobenius": 61.7217903137207,
+        "base_linf": 0.5,
+        "fp32_delta_frobenius": 1.8512861728668213,
+        "fp32_rel_frobenius": 0.02999404527083609,
+        "fp32_delta_linf": 0.014999999664723873,
+        "fp32_rel_linf": 0.02999999932938775,
+        "bf16_l0_changed_elements": 4194303,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 1.8444108963012695,
+        "bf16_rel_frobenius": 0.02988265387193781,
+        "bf16_delta_linf": 0.015625,
+        "bf16_rel_linf": 0.0312499999999375
+      },
+      {
+        "tensor_name": "model.layers.18.self_attn.o_proj.weight",
+        "shape": [
+          2048,
+          2048
+        ],
+        "numel": 4194304,
+        "num_ops_applied": 1,
+        "base_frobenius": 58.81593322753906,
+        "base_linf": 0.484375,
+        "fp32_delta_frobenius": 1.7641435861587524,
+        "fp32_rel_frobenius": 0.02999431428442773,
+        "fp32_delta_linf": 0.014531250111758709,
+        "fp32_rel_linf": 0.03000000023066572,
+        "bf16_l0_changed_elements": 4194303,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 1.7575247287750244,
+        "bf16_rel_frobenius": 0.02988177917666838,
+        "bf16_delta_linf": 0.013671875,
+        "bf16_rel_linf": 0.028225806451554633
+      },
+      {
+        "tensor_name": "model.layers.20.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 132.03268432617188,
+        "base_linf": 0.8046875,
+        "fp32_delta_frobenius": 5.2794189453125,
+        "fp32_rel_frobenius": 0.039985697270762524,
+        "fp32_delta_linf": 0.03218749910593033,
+        "fp32_rel_linf": 0.03999999888887342,
+        "bf16_l0_changed_elements": 12582907,
+        "bf16_l0_fraction": 0.9999996026357015,
+        "bf16_delta_frobenius": 5.275681018829346,
+        "bf16_rel_frobenius": 0.03995738665583993,
+        "bf16_delta_linf": 0.03125,
+        "bf16_rel_linf": 0.03883495145626242
+      },
+      {
+        "tensor_name": "model.layers.22.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 136.81539916992188,
+        "base_linf": 1.203125,
+        "fp32_delta_frobenius": 5.4710283279418945,
+        "fp32_rel_frobenius": 0.03998839575906914,
+        "fp32_delta_linf": 0.048124998807907104,
+        "fp32_rel_linf": 0.03999999900913629,
+        "bf16_l0_changed_elements": 12582909,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 5.46718692779541,
+        "bf16_rel_frobenius": 0.03996031850921429,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.038961038961006576
+      },
+      {
+        "tensor_name": "model.layers.24.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 138.6571044921875,
+        "base_linf": 1.0859375,
+        "fp32_delta_frobenius": 6.932455539703369,
+        "fp32_rel_frobenius": 0.0499971174581532,
+        "fp32_delta_linf": 0.05429687723517418,
+        "fp32_rel_linf": 0.05000000205824384,
+        "bf16_l0_changed_elements": 12582911,
+        "bf16_l0_fraction": 0.9999999205271403,
+        "bf16_delta_frobenius": 6.933340549468994,
+        "bf16_rel_frobenius": 0.05000350018025652,
+        "bf16_delta_linf": 0.0546875,
+        "bf16_rel_linf": 0.05035971223016945
+      },
+      {
+        "tensor_name": "model.layers.25.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 137.5299835205078,
+        "base_linf": 0.93359375,
+        "fp32_delta_frobenius": 6.876108646392822,
+        "fp32_rel_frobenius": 0.049997160403698004,
+        "fp32_delta_linf": 0.04667968675494194,
+        "fp32_rel_linf": 0.049999999201892624,
+        "bf16_l0_changed_elements": 12582907,
+        "bf16_l0_fraction": 0.9999996026357015,
+        "bf16_delta_frobenius": 6.87663459777832,
+        "bf16_rel_frobenius": 0.05000098467075625,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.050209205020866725
+      },
+      {
+        "tensor_name": "model.layers.26.mlp.down_proj.weight",
+        "shape": [
+          2048,
+          6144
+        ],
+        "numel": 12582912,
+        "num_ops_applied": 1,
+        "base_frobenius": 135.11924743652344,
+        "base_linf": 1.2109375,
+        "fp32_delta_frobenius": 5.403017520904541,
+        "fp32_rel_frobenius": 0.03998703088871732,
+        "fp32_delta_linf": 0.04843749850988388,
+        "fp32_rel_linf": 0.03999999876941946,
+        "bf16_l0_changed_elements": 12582909,
+        "bf16_l0_fraction": 0.9999997615814209,
+        "bf16_delta_frobenius": 5.398866176605225,
+        "bf16_rel_frobenius": 0.03995630732876509,
+        "bf16_delta_linf": 0.046875,
+        "bf16_rel_linf": 0.038709677419322866
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+filbench_lighteval_commit: "7ad5279"
+custom_tasks_module: "filbench_wsp.lighteval_tasks"
+backend: "accelerate"
+model_args:
+  dtype: "bfloat16"
+  max_model_length: 4096
+  use_chat_template: false
+generation_parameters:
+  temperature: 0.0
+  max_new_tokens: 64
+  seed: 1234
+runtime_flags:
+  num_fewshot: 0
+  truncate_few_shots: 0
+  save_details: true
+  bootstrap_iters: 0

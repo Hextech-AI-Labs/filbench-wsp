@@ -1,0 +1,152 @@
+{
+  "config_general": {
+    "lighteval_sha": "7ad52795d7d218d4679f93a019b58dde4b749c5b",
+    "num_fewshot_seeds": 1,
+    "max_samples": 2,
+    "job_id": 0,
+    "start_time": 85231.2121547,
+    "end_time": 85248.3864836,
+    "total_evaluation_time_secondes": "17.174328900000546",
+    "model_name": "C:/Users/User/Documents/GitHub/filbench-wsp/checkpoints/base/sailor2_1b",
+    "model_sha": "",
+    "model_dtype": "bfloat16",
+    "model_size": "1.84 GB",
+    "generation_parameters": {
+      "early_stopping": null,
+      "repetition_penalty": null,
+      "frequency_penalty": null,
+      "length_penalty": null,
+      "presence_penalty": null,
+      "max_new_tokens": 64,
+      "min_new_tokens": null,
+      "seed": 1234,
+      "stop_tokens": null,
+      "temperature": 0.0,
+      "top_k": null,
+      "min_p": null,
+      "top_p": null,
+      "truncate_prompt": null,
+      "response_format": null
+    }
+  },
+  "results": {
+    "filbench|ntrex128_fil|0": {
+      "rougeL": 0.048780487804878044,
+      "bleu": 0.5773852080476596,
+      "bleurt": -1.6514278650283813,
+      "chrf": 4.50365273178287,
+      "ter": 100.0
+    },
+    "all": {
+      "rougeL": 0.048780487804878044,
+      "bleu": 0.5773852080476596,
+      "bleurt": -1.6514278650283813,
+      "chrf": 4.50365273178287,
+      "ter": 100.0
+    }
+  },
+  "versions": {
+    "filbench|ntrex128_fil|0": 0
+  },
+  "config_tasks": {
+    "filbench|ntrex128_fil": {
+      "name": "ntrex128_fil",
+      "prompt_function": "translation_prompt",
+      "hf_repo": "mteb/NTREX",
+      "hf_subset": "default",
+      "metric": [
+        {
+          "metric_name": "rougeL",
+          "higher_is_better": true,
+          "category": "3",
+          "use_case": "8",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        },
+        {
+          "metric_name": "bleu",
+          "higher_is_better": true,
+          "category": "3",
+          "use_case": "9",
+          "sample_level_fn": "prepare",
+          "corpus_level_fn": "compute"
+        },
+        {
+          "metric_name": "bleurt",
+          "higher_is_better": true,
+          "category": "3",
+          "use_case": "9",
+          "sample_level_fn": "compute",
+          "corpus_level_fn": "mean"
+        },
+        {
+          "metric_name": "chrf",
+          "higher_is_better": true,
+          "category": "3",
+          "use_case": "9",
+          "sample_level_fn": "prepare",
+          "corpus_level_fn": "compute"
+        },
+        {
+          "metric_name": "ter",
+          "higher_is_better": false,
+          "category": "3",
+          "use_case": "9",
+          "sample_level_fn": "prepare",
+          "corpus_level_fn": "compute"
+        }
+      ],
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "test"
+      ],
+      "trust_dataset": true,
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": null,
+      "few_shots_select": null,
+      "generation_size": 64,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "suite": [
+        "filbench"
+      ],
+      "original_num_docs": 1997,
+      "effective_num_docs": 2,
+      "must_remove_duplicate_docs": false,
+      "version": 0
+    }
+  },
+  "summary_tasks": {
+    "filbench|ntrex128_fil|0": {
+      "hashes": {
+        "hash_examples": "583c7a198b6e7195",
+        "hash_full_prompts": "583c7a198b6e7195",
+        "hash_input_tokens": "e3b528cc47e4651e",
+        "hash_cont_tokens": "fe7936a3ada8432f"
+      },
+      "truncated": 2,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 2,
+      "effective_few_shots": 0.0,
+      "num_truncated_few_shots": 0
+    }
+  },
+  "summary_general": {
+    "hashes": {
+      "hash_examples": "c449d9b72d8c7907",
+      "hash_full_prompts": "c449d9b72d8c7907",
+      "hash_input_tokens": "27e37708026d8ffd",
+      "hash_cont_tokens": "010eeed4ebf8e199"
+    },
+    "truncated": 2,
+    "non_truncated": 0,
+    "padded": 0,
+    "non_padded": 2,
+    "num_truncated_few_shots": 0
+  }
+}
