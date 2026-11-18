@@ -9,6 +9,7 @@ OpType = Literal[
     "scale_rows",
     "scale_cols",
     "spectral_band_scale",
+    "scale_tied_rows",
 ]
 
 VALID_OP_TYPES: frozenset[str] = frozenset(
@@ -17,6 +18,7 @@ VALID_OP_TYPES: frozenset[str] = frozenset(
         "scale_rows",
         "scale_cols",
         "spectral_band_scale",
+        "scale_tied_rows",
     }
 )
 
@@ -28,10 +30,11 @@ DEFAULT_PROTECTED_TENSORS: tuple[str, ...] = (
     "transformer.wpe.weight",
 )
 
+TIED_ROW_ANCHOR_TENSOR = "model.embed_tokens.weight"
+TIED_ROW_MIRROR_TENSOR = "lm_head.weight"
 
 class EditValidationError(ValueError):
     """Raised when an untrusted edit operation or plan violates safety invariants."""
-
 
 @dataclass(frozen=True)
 class EditBudget:
@@ -44,6 +47,8 @@ class EditBudget:
     max_rel_linf: float = 0.25
     allow_embeddings_and_head: bool = False
     require_bf16_nonzero_change: bool = True
+    allow_tied_embedding_rows: bool = False
+    max_tied_rows: int = 512
     protected_tensors: tuple[str, ...] = DEFAULT_PROTECTED_TENSORS
 
     def validate(self) -> None:
@@ -61,6 +66,14 @@ class EditBudget:
             raise EditValidationError("max_rel_frobenius must be in (0.0, 1.0]")
         if not math.isfinite(self.max_rel_linf) or not (0.0 < self.max_rel_linf <= 1.0):
             raise EditValidationError("max_rel_linf must be in (0.0, 1.0]")
+        if not isinstance(self.allow_tied_embedding_rows, bool):
+            raise EditValidationError("allow_tied_embedding_rows must be a bool")
+        if (
+            not isinstance(self.max_tied_rows, int)
+            or isinstance(self.max_tied_rows, bool)
+            or self.max_tied_rows < 1
+        ):
+            raise EditValidationError("max_tied_rows must be an integer >= 1")
         if not isinstance(self.protected_tensors, (tuple, list)) or not all(
             isinstance(t, str) and t for t in self.protected_tensors
         ):
@@ -92,7 +105,6 @@ class EditBudget:
         budget.validate()
         return budget
 
-
 @dataclass(frozen=True)
 class EditOp:
     """Single declarative weight-edit operation.
@@ -110,6 +122,7 @@ class EditOp:
     col_end: int | None = None
     rank_start: int | None = None
     rank_end: int | None = None
+    row_indices: list[int] | None = None
     rationale: str = ""
 
     def validate_syntax(self, budget: EditBudget) -> None:
@@ -119,9 +132,11 @@ class EditOp:
             )
         if not self.tensor_name or not isinstance(self.tensor_name, str):
             raise EditValidationError("tensor_name must be a non-empty string")
+        is_tied_row_op = self.op_type == "scale_tied_rows"
         if (
             not budget.allow_embeddings_and_head
             and self.tensor_name in budget.protected_tensors
+            and not (is_tied_row_op and budget.allow_tied_embedding_rows)
         ):
             raise EditValidationError(
                 f"Tensor {self.tensor_name!r} is protected when allow_embeddings_and_head=False"
@@ -151,20 +166,21 @@ class EditOp:
                     self.col_end,
                     self.rank_start,
                     self.rank_end,
+                    self.row_indices,
                 )
             ):
                 raise EditValidationError(
-                    "scale_tensor must not specify row/col/rank slice bounds"
+                    "scale_tensor must not specify row/col/rank slice bounds or row_indices"
                 )
         elif self.op_type == "scale_rows":
             if self.row_start is None or self.row_end is None:
                 raise EditValidationError("scale_rows requires row_start and row_end")
             if any(
                 v is not None
-                for v in (self.col_start, self.col_end, self.rank_start, self.rank_end)
+                for v in (self.col_start, self.col_end, self.rank_start, self.rank_end, self.row_indices)
             ):
                 raise EditValidationError(
-                    "scale_rows must not specify col or rank slice bounds"
+                    "scale_rows must not specify col/rank slice bounds or row_indices"
                 )
             if self.row_start < 0 or self.row_end <= self.row_start:
                 raise EditValidationError(
@@ -175,10 +191,10 @@ class EditOp:
                 raise EditValidationError("scale_cols requires col_start and col_end")
             if any(
                 v is not None
-                for v in (self.row_start, self.row_end, self.rank_start, self.rank_end)
+                for v in (self.row_start, self.row_end, self.rank_start, self.rank_end, self.row_indices)
             ):
                 raise EditValidationError(
-                    "scale_cols must not specify row or rank slice bounds"
+                    "scale_cols must not specify row/rank slice bounds or row_indices"
                 )
             if self.col_start < 0 or self.col_end <= self.col_start:
                 raise EditValidationError(
@@ -191,15 +207,53 @@ class EditOp:
                 )
             if any(
                 v is not None
-                for v in (self.row_start, self.row_end, self.col_start, self.col_end)
+                for v in (self.row_start, self.row_end, self.col_start, self.col_end, self.row_indices)
             ):
                 raise EditValidationError(
-                    "spectral_band_scale must not specify row or col slice bounds"
+                    "spectral_band_scale must not specify row/col slice bounds or row_indices"
                 )
             if self.rank_start < 0 or self.rank_end <= self.rank_start:
                 raise EditValidationError(
                     f"Invalid spectral rank band [{self.rank_start}, {self.rank_end})"
                 )
+        elif self.op_type == "scale_tied_rows":
+            if not budget.allow_tied_embedding_rows:
+                raise EditValidationError(
+                    "scale_tied_rows requires budget.allow_tied_embedding_rows=True"
+                )
+            if self.tensor_name != TIED_ROW_ANCHOR_TENSOR:
+                raise EditValidationError(
+                    f"scale_tied_rows must target {TIED_ROW_ANCHOR_TENSOR!r}; "
+                    f"{TIED_ROW_MIRROR_TENSOR!r} is mirrored automatically by the applier"
+                )
+            if any(
+                v is not None
+                for v in (
+                    self.row_start,
+                    self.row_end,
+                    self.col_start,
+                    self.col_end,
+                    self.rank_start,
+                    self.rank_end,
+                )
+            ):
+                raise EditValidationError(
+                    "scale_tied_rows must not specify row/col/rank slice bounds; use row_indices"
+                )
+            if not isinstance(self.row_indices, list) or not self.row_indices:
+                raise EditValidationError("scale_tied_rows requires a non-empty row_indices list")
+            if len(self.row_indices) > budget.max_tied_rows:
+                raise EditValidationError(
+                    f"scale_tied_rows has {len(self.row_indices)} rows, exceeding "
+                    f"budget.max_tied_rows={budget.max_tied_rows}"
+                )
+            if any(
+                not isinstance(i, int) or isinstance(i, bool) or i < 0
+                for i in self.row_indices
+            ):
+                raise EditValidationError("row_indices must be non-negative integers")
+            if len(set(self.row_indices)) != len(self.row_indices):
+                raise EditValidationError("row_indices must be unique")
 
     def validate_against_shape(self, shape: tuple[int, ...]) -> None:
         if len(shape) not in (1, 2):
@@ -245,6 +299,18 @@ class EditOp:
                     f"rank slice [{self.rank_start}, {self.rank_end}) exceeds min(shape)={max_rank} "
                     f"for {self.tensor_name!r} with shape {shape}"
                 )
+        elif self.op_type == "scale_tied_rows":
+            if len(shape) != 2:
+                raise EditValidationError(
+                    f"scale_tied_rows requires a 2D embedding matrix, got shape {shape} "
+                    f"for {self.tensor_name!r}"
+                )
+            if not self.row_indices:
+                raise EditValidationError("scale_tied_rows requires row_indices")
+            if any(i >= shape[0] for i in self.row_indices):
+                raise EditValidationError(
+                    f"row_indices out of bounds for {self.tensor_name!r} with shape {shape}"
+                )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -263,6 +329,7 @@ class EditOp:
             "col_end",
             "rank_start",
             "rank_end",
+            "row_indices",
             "rationale",
         }
         unknown = set(data.keys()) - allowed_keys
@@ -271,6 +338,9 @@ class EditOp:
         for req_key in ("op_type", "tensor_name", "delta_scale"):
             if req_key not in data:
                 raise EditValidationError(f"Missing required key {req_key!r} in EditOp")
+        row_indices_raw = data.get("row_indices")
+        if row_indices_raw is not None and not isinstance(row_indices_raw, list):
+            raise EditValidationError("row_indices must be a list of integers or null")
         return cls(
             op_type=data["op_type"],
             tensor_name=data["tensor_name"],
@@ -281,9 +351,9 @@ class EditOp:
             col_end=data.get("col_end"),
             rank_start=data.get("rank_start"),
             rank_end=data.get("rank_end"),
+            row_indices=list(row_indices_raw) if isinstance(row_indices_raw, list) else None,
             rationale=str(data.get("rationale", "")),
         )
-
 
 @dataclass(frozen=True)
 class EditPlan:
@@ -346,7 +416,6 @@ class EditPlan:
         plan.validate_syntax()
         return plan
 
-
 @dataclass(frozen=True)
 class TensorEditMetrics:
     """Pre-rounding (fp32) and post-rounding (bf16) perturbation statistics for a tensor."""
@@ -370,7 +439,6 @@ class TensorEditMetrics:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
 
 @dataclass(frozen=True)
 class EditExecutionReport:

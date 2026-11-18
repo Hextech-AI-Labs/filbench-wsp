@@ -12,6 +12,8 @@ from safetensors.torch import save_file
 
 from filbench_wsp.editing.random_control import build_matched_random_tensor_delta_fp32
 from filbench_wsp.editing.schema import (
+    TIED_ROW_ANCHOR_TENSOR,
+    TIED_ROW_MIRROR_TENSOR,
     EditBudget,
     EditExecutionReport,
     EditOp,
@@ -26,7 +28,6 @@ EPS = 1e-12
 # Rounding (base_fp32 + delta_fp32) back to bfloat16 can shift the realized perturbation
 # norm by up to ~1% relative to the pre-rounding fp32 budget cap.
 BF16_BUDGET_SLACK = 1e-2
-
 
 def compute_op_delta_fp32(base_weight_fp32: torch.Tensor, op: EditOp) -> torch.Tensor:
     """Compute the exact fp32 weight perturbation Delta W for a single validated EditOp."""
@@ -65,6 +66,12 @@ def compute_op_delta_fp32(base_weight_fp32: torch.Tensor, op: EditOp) -> torch.T
         vh_band = vh[op.rank_start : op.rank_end, :]
         delta = scale * ((u_band * s_band.unsqueeze(0)) @ vh_band)
 
+    elif op.op_type == "scale_tied_rows":
+        if not op.row_indices:
+            raise EditValidationError("scale_tied_rows requires row_indices")
+        idx = torch.tensor(op.row_indices, dtype=torch.long, device=base_weight_fp32.device)
+        delta[idx] = scale * base_weight_fp32[idx]
+
     else:
         raise EditValidationError(f"Unsupported op_type: {op.op_type!r}")
 
@@ -74,23 +81,16 @@ def compute_op_delta_fp32(base_weight_fp32: torch.Tensor, op: EditOp) -> torch.T
         )
     return delta
 
-
-def compute_and_validate_tensor_edit(
+def _compute_combined_delta_fp32(
     tensor_name: str,
-    base_weight: torch.Tensor,
+    base_fp32: torch.Tensor,
     ops: list[EditOp],
     budget: EditBudget,
-    mode: Literal["llm_edited", "random_control"] = "llm_edited",
-    random_seed: int | None = None,
-) -> tuple[torch.Tensor, TensorEditMetrics]:
-    """Compute new bfloat16 tensor and validate all fp32 and bf16 safety invariants."""
-    if not bool(torch.isfinite(base_weight).all().item()):
-        raise EditValidationError(f"Base tensor {tensor_name!r} contains non-finite values")
-
-    base_fp32 = base_weight.to(torch.float32)
-    base_frob = float(torch.linalg.vector_norm(base_fp32).item())
+    mode: Literal["llm_edited", "random_control"],
+    random_seed: int | None,
+) -> torch.Tensor:
+    """Sum op deltas (llm_edited) or build the structure/norm-matched random delta."""
     base_linf = float(torch.max(torch.abs(base_fp32)).item())
-
     llm_delta_fp32 = torch.zeros_like(base_fp32, dtype=torch.float32)
     for op in ops:
         llm_delta_fp32 = llm_delta_fp32 + compute_op_delta_fp32(base_fp32, op)
@@ -114,6 +114,19 @@ def compute_and_validate_tensor_edit(
 
     if not bool(torch.isfinite(delta_fp32).all().item()):
         raise EditValidationError(f"Combined delta for {tensor_name!r} contains non-finite values")
+    return delta_fp32
+
+def _validate_and_round(
+    tensor_name: str,
+    base_weight: torch.Tensor,
+    delta_fp32: torch.Tensor,
+    budget: EditBudget,
+    num_ops: int,
+) -> tuple[torch.Tensor, TensorEditMetrics]:
+    """Enforce fp32 + post-bf16 budget invariants and return the rounded tensor + metrics."""
+    base_fp32 = base_weight.to(torch.float32)
+    base_frob = float(torch.linalg.vector_norm(base_fp32).item())
+    base_linf = float(torch.max(torch.abs(base_fp32)).item())
 
     fp32_delta_frob = float(torch.linalg.vector_norm(delta_fp32).item())
     fp32_rel_frob = fp32_delta_frob / (base_frob + EPS)
@@ -172,7 +185,7 @@ def compute_and_validate_tensor_edit(
         tensor_name=tensor_name,
         shape=list(base_weight.shape),
         numel=numel,
-        num_ops_applied=len(ops),
+        num_ops_applied=num_ops,
         base_frobenius=base_frob,
         base_linf=base_linf,
         fp32_delta_frobenius=fp32_delta_frob,
@@ -188,24 +201,123 @@ def compute_and_validate_tensor_edit(
     )
     return edited_out, metrics
 
+def compute_and_validate_tensor_edit(
+    tensor_name: str,
+    base_weight: torch.Tensor,
+    ops: list[EditOp],
+    budget: EditBudget,
+    mode: Literal["llm_edited", "random_control"] = "llm_edited",
+    random_seed: int | None = None,
+) -> tuple[torch.Tensor, TensorEditMetrics]:
+    """Compute new bfloat16 tensor and validate all fp32 and bf16 safety invariants."""
+    if not bool(torch.isfinite(base_weight).all().item()):
+        raise EditValidationError(f"Base tensor {tensor_name!r} contains non-finite values")
+    base_fp32 = base_weight.to(torch.float32)
+    delta_fp32 = _compute_combined_delta_fp32(
+        tensor_name, base_fp32, ops, budget, mode, random_seed
+    )
+    return _validate_and_round(tensor_name, base_weight, delta_fp32, budget, len(ops))
 
-def _check_tied_embeddings_policy(base_dir: Path, targeted_tensors: set[str]) -> None:
-    config_path = base_dir / "config.json"
-    if not config_path.exists():
-        return
-    try:
-        cfg = json.loads(config_path.read_text(encoding="utf-8"))
-    except Exception:
-        return
-    if bool(cfg.get("tie_word_embeddings", False)):
-        tied_pair = {"model.embed_tokens.weight", "lm_head.weight"}
-        touched_tied = targeted_tensors & tied_pair
-        if touched_tied:
+def compute_and_validate_tied_pair_edit(
+    embed_base: torch.Tensor,
+    lm_base: torch.Tensor | None,
+    ops: list[EditOp],
+    budget: EditBudget,
+    mode: Literal["llm_edited", "random_control"] = "llm_edited",
+    random_seed: int | None = None,
+) -> tuple[torch.Tensor, TensorEditMetrics, torch.Tensor | None, TensorEditMetrics | None]:
+    """Apply ONE shared delta to both tied copies (embed_tokens + lm_head).
+
+    The delta is computed once from the embedding matrix, so the random control
+    also preserves the tie. If lm_head.weight is absent from the checkpoint
+    (common for tied models), only the embedding is edited; the tie is restored
+    at load time by the modeling code.
+    """
+    if embed_base.ndim != 2:
+        raise EditValidationError("scale_tied_rows requires a 2D embedding matrix")
+    if lm_base is not None:
+        if tuple(lm_base.shape) != tuple(embed_base.shape):
             raise EditValidationError(
-                f"Checkpoint {base_dir} has tie_word_embeddings=true; editing {sorted(touched_tied)} "
-                f"is forbidden because it would desynchronize tied input/output embeddings."
+                "Tied lm_head.weight shape differs from model.embed_tokens.weight"
             )
+        if not torch.equal(embed_base, lm_base):
+            raise EditValidationError(
+                "Checkpoint claims tied embeddings but embed_tokens and lm_head differ "
+                "bitwise; refusing to edit (tie would be desynchronized)"
+            )
+    base_fp32 = embed_base.to(torch.float32)
+    delta_fp32 = _compute_combined_delta_fp32(
+        TIED_ROW_ANCHOR_TENSOR, base_fp32, ops, budget, mode, random_seed
+    )
+    edited_embed, metrics_embed = _validate_and_round(
+        TIED_ROW_ANCHOR_TENSOR, embed_base, delta_fp32, budget, len(ops)
+    )
+    if lm_base is None:
+        return edited_embed, metrics_embed, None, None
+    edited_lm, metrics_lm = _validate_and_round(
+        TIED_ROW_MIRROR_TENSOR, lm_base, delta_fp32, budget, len(ops)
+    )
+    if not torch.equal(edited_embed, edited_lm):
+        raise RuntimeError(
+            "CRITICAL: tied copies diverged after edit; this must never happen with a shared delta"
+        )
+    return edited_embed, metrics_embed, edited_lm, metrics_lm
 
+def _check_tied_embeddings_policy(
+    base_dir: Path,
+    ops_by_tensor: dict[str, list[EditOp]] | set[str] | frozenset[str] | list[str] | tuple[str, ...],
+) -> None:
+    """Guard tied input/output embeddings against desynchronizing edits.
+
+    Accepts either the full ops-by-tensor mapping (current callers) or a plain
+    collection of targeted tensor names (older callers/tests).
+    """
+    # Backward compatibility: a bare collection of names means "these tensors are
+    # targeted, with no op-type information", which is the pre-tied-row-op contract.
+    if isinstance(ops_by_tensor, (set, frozenset, list, tuple)):
+        ops_by_tensor = {name: [] for name in ops_by_tensor}
+
+    config_path = base_dir / "config.json"
+    tie = False
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            tie = bool(cfg.get("tie_word_embeddings", False))
+        except Exception:
+            tie = False
+
+    tied_pair = {TIED_ROW_ANCHOR_TENSOR, TIED_ROW_MIRROR_TENSOR}
+    has_tied_row_ops = any(
+        op.op_type == "scale_tied_rows" for ops in ops_by_tensor.values() for op in ops
+    )
+
+    if has_tied_row_ops:
+        if not tie:
+            raise EditValidationError(
+                f"scale_tied_rows requires tie_word_embeddings=true in {base_dir / 'config.json'}"
+            )
+        for name, ops in ops_by_tensor.items():
+            if any(op.op_type == "scale_tied_rows" for op in ops):
+                if name != TIED_ROW_ANCHOR_TENSOR:
+                    raise EditValidationError(
+                        f"scale_tied_rows ops must target {TIED_ROW_ANCHOR_TENSOR!r}, got {name!r}"
+                    )
+                if any(op.op_type != "scale_tied_rows" for op in ops):
+                    raise EditValidationError(
+                        "Cannot mix scale_tied_rows with other op types on the embedding tensor"
+                    )
+        if TIED_ROW_MIRROR_TENSOR in ops_by_tensor:
+            raise EditValidationError(
+                f"Do not target {TIED_ROW_MIRROR_TENSOR!r} explicitly; it is mirrored automatically"
+            )
+    else:
+        if tie:
+            touched_tied = set(ops_by_tensor.keys()) & tied_pair
+            if touched_tied:
+                raise EditValidationError(
+                    f"Checkpoint {base_dir} has tie_word_embeddings=true; editing {sorted(touched_tied)} "
+                    f"is forbidden because it would desynchronize tied input/output embeddings."
+                )
 
 def _verify_saved_checkpoint(
     out_dir: Path,
@@ -237,7 +349,6 @@ def _verify_saved_checkpoint(
                     probed = True
             if not probed and actual_keys:
                 _ = f.get_tensor(actual_keys[0])
-
 
 def apply_edit_plan_to_checkpoint(
     plan: EditPlan,
@@ -271,7 +382,8 @@ def apply_edit_plan_to_checkpoint(
     for op in plan.ops:
         ops_by_tensor[op.tensor_name].append(op)
 
-    _check_tied_embeddings_policy(base_dir, set(ops_by_tensor.keys()))
+    tied_row_mode = any(op.op_type == "scale_tied_rows" for op in plan.ops)
+    _check_tied_embeddings_policy(base_dir, ops_by_tensor)
 
     # Single header + targeted-tensor pass over base .safetensors files
     inventory_shapes: dict[str, tuple[int, ...]] = {}
@@ -287,7 +399,7 @@ def apply_edit_plan_to_checkpoint(
             for key in keys:
                 s = f.get_slice(key)
                 inventory_shapes[key] = tuple(s.get_shape())
-                if key in ops_by_tensor:
+                if key in ops_by_tensor or (tied_row_mode and key == TIED_ROW_MIRROR_TENSOR):
                     targeted_base_tensors[key] = f.get_tensor(key)
 
     for tensor_name, ops in ops_by_tensor.items():
@@ -299,12 +411,35 @@ def apply_edit_plan_to_checkpoint(
         for op in ops:
             op.validate_against_shape(shape)
 
+    mirror_lm = tied_row_mode and TIED_ROW_MIRROR_TENSOR in inventory_shapes
+    if mirror_lm:
+        if inventory_shapes[TIED_ROW_MIRROR_TENSOR] != inventory_shapes[TIED_ROW_ANCHOR_TENSOR]:
+            raise EditValidationError(
+                "Tied lm_head.weight shape differs from model.embed_tokens.weight"
+            )
+
     base_sha_before = compute_checkpoint_hash(base_dir)
 
     edited_tensors: dict[str, torch.Tensor] = {}
     metrics_list: list[TensorEditMetrics] = []
 
     for tensor_name in sorted(ops_by_tensor.keys()):
+        if tied_row_mode and tensor_name == TIED_ROW_ANCHOR_TENSOR:
+            edited_embed, metrics_embed, edited_lm, metrics_lm = compute_and_validate_tied_pair_edit(
+                embed_base=targeted_base_tensors[TIED_ROW_ANCHOR_TENSOR],
+                lm_base=targeted_base_tensors.get(TIED_ROW_MIRROR_TENSOR) if mirror_lm else None,
+                ops=ops_by_tensor[tensor_name],
+                budget=plan.budget,
+                mode=mode,
+                random_seed=random_seed,
+            )
+            edited_tensors[TIED_ROW_ANCHOR_TENSOR] = edited_embed
+            metrics_list.append(metrics_embed)
+            if edited_lm is not None and metrics_lm is not None:
+                edited_tensors[TIED_ROW_MIRROR_TENSOR] = edited_lm
+                metrics_list.append(metrics_lm)
+            continue
+
         base_tensor = targeted_base_tensors[tensor_name]
         new_tensor, metrics = compute_and_validate_tensor_edit(
             tensor_name=tensor_name,

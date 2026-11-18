@@ -46,11 +46,14 @@ def build_lighteval_model_args(checkpoint_dir: Path, eval_cfg: dict[str, Any]) -
         device = "cuda" if torch.cuda.is_available() else "cpu"
     except ImportError:
         device = "cpu"
+    batch_size = int(model_args.get("batch_size", 1))
+    if batch_size < 1:
+        raise ValueError("model_args.batch_size must be >= 1")
     return (
         f"model_name={checkpoint_dir.resolve().as_posix()},"
         f"dtype={model_args['dtype']},"
         f"max_length={int(model_args['max_model_length'])},"
-        f"device={device},batch_size=1,"
+        f"device={device},batch_size={batch_size},"
         f"generation_parameters={{temperature:{float(generation['temperature'])},"
         f"max_new_tokens:{int(generation['max_new_tokens'])},"
         f"seed:{int(generation['seed'])}}}"

@@ -8,17 +8,14 @@ from filbench_wsp.editing.schema import EditOp, EditValidationError
 EPS = 1e-12
 MAX_PROJECTION_ITERS = 64
 
-
 def _derive_tensor_seed(master_seed: int, tensor_name: str, op_index: int) -> int:
     payload = f"{master_seed}:{tensor_name}:{op_index}".encode("utf-8")
     digest = hashlib.sha256(payload).digest()
     return int.from_bytes(digest[:8], byteorder="big", signed=False) & 0x7FFF_FFFF_FFFF_FFFF
 
-
 def _rademacher(shape: tuple[int, ...], gen: torch.Generator, device: torch.device) -> torch.Tensor:
     bits = torch.randint(0, 2, shape, generator=gen, device=device, dtype=torch.int64)
     return bits.to(torch.float32).mul_(2.0).sub_(1.0)
-
 
 def _random_orthonormal_columns(
     num_rows: int,
@@ -31,7 +28,6 @@ def _random_orthonormal_columns(
     diag = torch.diagonal(r, 0)
     signs = torch.where(diag >= 0.0, torch.ones_like(diag), -torch.ones_like(diag))
     return q * signs.unsqueeze(0)
-
 
 def build_random_op_direction_fp32(
     base_weight_fp32: torch.Tensor,
@@ -87,11 +83,18 @@ def build_random_op_direction_fp32(
         v_rand = _random_orthonormal_columns(shape[1], band_rank, gen, device)
         delta_rand = float(op.delta_scale) * ((u_rand * band_sigma.unsqueeze(0)) @ v_rand.T)
 
+    elif op.op_type == "scale_tied_rows":
+        if not op.row_indices:
+            raise EditValidationError("scale_tied_rows requires row_indices")
+        num_rows = len(op.row_indices)
+        perm = torch.randperm(shape[0], generator=gen, device=device)[:num_rows]
+        signs = _rademacher((num_rows, 1), gen, device)
+        delta_rand[perm, :] = float(op.delta_scale) * (base_weight_fp32[perm, :] * signs)
+
     else:
         raise EditValidationError(f"Unsupported op_type {op.op_type!r} in random control")
 
     return delta_rand
-
 
 def project_to_l2_and_linf_ball(
     delta: torch.Tensor,
@@ -160,7 +163,6 @@ def project_to_l2_and_linf_ball(
             f"L_inf={final_linf:.6f} (limit={max_abs_entry_limit:.6f})"
         )
     return x
-
 
 def build_matched_random_tensor_delta_fp32(
     base_weight_fp32: torch.Tensor,

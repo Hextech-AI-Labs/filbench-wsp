@@ -413,6 +413,7 @@ def ingest_chatbot_response_and_materialize(
     random_seed: int = 42,
     plan_id_override: str | None = None,
     force: bool = False,
+    allow_tied_rows: bool = False,
 ) -> dict[str, Any]:
     """Parse a verbatim chatbot response, validate fail-closed, and materialize edited + random checkpoints."""
     raw_text = raw_response_path.read_text(encoding="utf-8")
@@ -429,12 +430,17 @@ def ingest_chatbot_response_and_materialize(
         "raw_response_sha256": raw_sha256,
         "ingested_at_utc": datetime.now(timezone.utc).isoformat(),
         "random_control_seed": random_seed,
+        "allow_tied_rows": allow_tied_rows,
     }
 
     try:
         parsed_dict = extract_json_from_raw_response(raw_text)
         if plan_id_override:
             parsed_dict["plan_id"] = plan_id_override
+        if allow_tied_rows:
+            budget_dict = dict(parsed_dict.get("budget") or {})
+            budget_dict["allow_tied_embedding_rows"] = True
+            parsed_dict["budget"] = budget_dict
         parsed_dict["proposer_metadata"] = {
             **dict(parsed_dict.get("proposer_metadata") or {}),
             **provenance,

@@ -10,7 +10,6 @@ from filbench_wsp.proposer import (
     render_zero_shot_prompt_packet,
 )
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Render standardized editing-LLM prompt packets and ingest verbatim chatbot responses."
@@ -95,6 +94,11 @@ def main() -> int:
         help="Deterministic seed for the matched random control.",
     )
     ingest_p.add_argument(
+        "--allow-tied-rows",
+        action="store_true",
+        help="Enable the tie-safe scale_tied_rows operator for this experiment (budget flag injected at ingest).",
+    )
+    ingest_p.add_argument(
         "--force",
         action="store_true",
         help="Overwrite existing edited/random output checkpoint directories if present.",
@@ -140,6 +144,7 @@ def main() -> int:
                 random_seed=args.random_seed,
                 plan_id_override=plan_id,
                 force=args.force,
+                allow_tied_rows=args.allow_tied_rows,
             )
         except Exception as exc:
             print(
@@ -152,6 +157,7 @@ def main() -> int:
         rep_e = bundle["llm_edited_report"]
         rep_r = bundle["random_control_report"]
         print(f"[ACCEPTED] Plan {plan_id!r} from proposer {args.proposer_model!r}")
+        print(f"  Tied-Row Operator:         {'ENABLED' if args.allow_tied_rows else 'disabled'}")
         print(f"  Edited Tensors:            {rep_e['num_edited_tensors']}")
         print(f"  Changed Params (bf16):     {rep_e['total_changed_parameters_bf16']:,}")
         print(
@@ -164,7 +170,6 @@ def main() -> int:
         return 0
 
     return 1
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

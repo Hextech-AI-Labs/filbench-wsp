@@ -2,6 +2,7 @@ filbench_lighteval_commit: "7ad5279"
 custom_tasks_module: "filbench_wsp.lighteval_tasks"
 backend: "accelerate"
 model_args:
+  batch_size: 4
   dtype: "bfloat16"
   max_model_length: 4096
   use_chat_template: false
